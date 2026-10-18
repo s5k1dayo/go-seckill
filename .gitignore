@@ -1,0 +1,27 @@
+# ---- secrets / env ----
+.env
+*.env
+!.env.example
+
+# ---- build artifacts ----
+/seckill
+*.exe
+*.out
+*.test
+
+# ---- local-only (not part of backend runtime) ----
+/scripts/
+/tools/
+/migrations/
+/docs/
+/task.md
+*.prof
+
+# ---- go ----
+/vendor/
+
+# ---- editor / os ----
+.DS_Store
+.idea/
+.vscode/
+*.swp
