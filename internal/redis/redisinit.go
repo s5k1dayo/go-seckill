@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"seckill/internal/db"
 	"seckill/internal/model"
 	"strconv"
@@ -15,9 +16,16 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
+func getenv(k, def string) string {
+	if v := os.Getenv(k); v != "" {
+		return v
+	}
+	return def
+}
+
 var rdb = goredis.NewClient(&goredis.Options{
-	Addr:     "127.0.0.1:6379",
-	Password: "",
+	Addr:     getenv("REDIS_ADDR", "127.0.0.1:6379"),
+	Password: os.Getenv("REDIS_PASSWORD"),
 	DB:       0,
 })
 

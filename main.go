@@ -28,7 +28,7 @@ import (
 func main() {
 	go http.ListenAndServe("localhost:6060", nil)
 	if err := godotenv.Load(); err != nil {
-		log.Fatal(err.Error())
+		log.Printf("no .env file, using environment variables: %v", err)
 	}
 	auth.Jwt_init()
 	db.Db_init()

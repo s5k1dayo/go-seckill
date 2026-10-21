@@ -1,0 +1,97 @@
+services:
+  mysql:
+    image: mariadb:11
+    container_name: seckill-mysql
+    networks: [backend]
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      MARIADB_DATABASE: seckill
+      MARIADB_USER: seckill
+      MARIADB_PASSWORD: ${MYSQL_PASSWORD:-seckill123}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: seckill-redis
+    networks: [backend]
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: seckill-rabbitmq
+    networks: [backend]
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin123}
+      TZ: Asia/Shanghai
+    ports:
+      # 管理台（宿主机 15672 可能已被本地 RabbitMQ 占用，这里映射到 15673）
+      - "15673:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: seckill-app
+    networks: [backend]
+    # 显式使用 Docker 内置 DNS，保证能解析 mysql/redis/rabbitmq
+    dns: [127.0.0.11]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      # 建议在 .env 或 shell 中覆盖 JWT_SECRET_KEY
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-please-change-me-to-a-random-32-bytes-string}
+      DSN: "seckill:${MYSQL_PASSWORD:-seckill123}@tcp(mysql:3306)/seckill?parseTime=true&charset=utf8mb4&loc=Local"
+      MQ: "amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-admin123}@rabbitmq:5672/"
+      REDIS_ADDR: "redis:6379"
+      LIMIT_R: ${LIMIT_R:-300}
+      LIMIT_BURST: ${LIMIT_BURST:-500}
+      TZ: Asia/Shanghai
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  backend:
+    driver: bridge

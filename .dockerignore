@@ -1,0 +1,11 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.md
+docs
+scripts
+tools
+migrations
+task.md

@@ -138,6 +138,17 @@ go run main.go
 
 > `.env` 含密钥，不要提交到仓库。
 
+### Docker 一键部署
+
+```bash
+export JWT_SECRET_KEY="$(openssl rand -hex 32)"   # 建议设置
+docker compose up -d --build
+```
+
+一键拉起 **app + MySQL + Redis + RabbitMQ**，初始化建表与演示数据（账号 `test / 123456`，活动 `id=1`）。
+
+详见 [DOCKER.md](DOCKER.md)（服务/端口/环境变量/验证方式/排障）。
+
 ---
 
 ## 接口
